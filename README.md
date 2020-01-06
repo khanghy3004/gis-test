@@ -1,4 +1,22 @@
-# gis-test
-Node js
-Express js
-MySQL
+# Gis-test
+
+Gis-test is a website using Geographic Information System.
+
+## Installation
+
+
+```bash
+npm install foobar
+```
+
+## Usage
+
+```bash
+nodemon app
+```
+
+## Contributing
+Hope you enjoy it!
+
+## License
+[MIT](https://choosealicense.com/licenses/mit/)
