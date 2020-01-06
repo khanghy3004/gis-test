@@ -1,0 +1,247 @@
+<% include partials/header.ejs %>
+<script src="../js/canvasjs.min.js"></script>
+<div id="map" style="height: 100%; margin-top: 50px;"></div>
+
+<!-- The Modal -->
+<div class="modal fade" id="myModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title">Thông tin chi tiết</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+            <!-- Modal body -->
+            <div class="modal-body">
+                <form action="/home/download">
+                    <div class="form-group">
+                        <label>Vui lòng chọn ngày tháng để tải dữ liệu chi tiết</label>
+                        <input class="form-control" type="date" id = "date" name="date" value="">
+                        <label>Chọn id máy cảm biến</label>
+                        <input class="form-control" id = "id" name="id" value="">
+                    </div>
+                    <button class="btn btn-primary" type="submit"><i class="fa fa-download"></i> Tải về</button>
+                </form>
+                <div class="container">
+                    <div id="chart1"  style="height: 300px; width: 100%;"></div>
+                    <div id="chart2"  style="height: 300px; width: 100%;"></div>
+                    <div id="chart3"  style="height: 300px; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Display current map
+    var map = L.map('map', {
+        center: [10.036132, 105.779458],
+        zoom: 13,
+        minZoom: 2,
+
+    });
+
+    L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        subdomains: ['a', 'b', 'c']
+    }).addTo(map);
+
+    // Load data realtime
+    realtime = L.realtime({
+        url: 'http://localhost/gis-test/public/test-data.php',
+        crossOrigin: true,
+        type: 'json'
+    }, { interval: 500, }).addTo(map);
+
+    var markerClusters = L.markerClusterGroup();
+
+    realtime.on('update', function (e) {
+        updateFeatureIcon = function (fId) {
+            var feature = e.features[fId],
+            sum = feature.properties.sum;
+            status = feature.properties.status;
+            dirt = feature.properties.dirt;
+            noise = feature.properties.noise;
+            water = feature.properties.water;
+            time = feature.properties.time;
+            curId = feature.properties.id;
+            arr1 = feature.properties.arr1;
+            arr2 = feature.properties.arr2;
+            arr3 = feature.properties.arr3;
+            colorDirt = checkDirt(dirt);
+            colorNoise = checkNoise(noise);
+            colorWater = checkWater(water);
+            // console.log(arr);
+            var m = realtime.getLayer(fId).setIcon(new L.AwesomeNumberMarkers({ number: sum, markerColor: status.toLowerCase() })).bindPopup(
+                time + "<table> <tr style='background-color:"+status+"'> <th>Loại</th> <th>Chỉ số</th> </tr> <tr style='background-color:"+colorDirt+"'> <td>CO2</td> <td>" + dirt + " PPM</td> </tr> <tr style='background-color:"+colorNoise+"'> <td>Độ ồn</td> <td>" + noise + " DB</td> </tr> <tr style='background-color:"+colorWater+"'> <td>Nước</td> <td>" + water + " pH</td> </tr> </table><br><button type='button' class='btn btn-outline-success' data-toggle='modal' data-target='#myModal' onclick='abc(" + arr1 + "," + arr2 + "," + arr3 + "," + curId+")'>Xem chi tiết</button>");
+            markerClusters.addLayer(m);
+        };
+        Object.keys(e.update).forEach(updateFeatureIcon);
+        map.addLayer(markerClusters);
+    });
+    /////////////////////////////////
+
+    function drawChartDirt(a) {
+        var chart = new CanvasJS.Chart("chart1", {
+            animationEnabled: true,
+            exportEnabled: true,
+            title: {
+                text: "Biểu đồ biểu diễn mật độ CO2 trong không khí",
+                fontFamily: "arial",
+                fontSize: 18,
+            },
+            axisY: {
+                title: "Chỉ số đo (PPM)",
+                suffix: "PPM",
+                titleFontSize: 14
+            },
+            axisX: {
+                title: "Thời gian",
+                valueFormatString: "#0,,.",
+                suffix: "h",
+                interval: 1,
+                titleFontSize: 14
+            },
+            data: [{
+                type: "splineArea",
+                color: "#33FFBD",
+                showInLegend: true,
+                name: "CO2",
+                yValueFormatString: "#,##0.##PPM",
+                dataPoints: [
+                    { label: "1:00", y: a[0] },
+                    { label: "3:00", y: a[1] },
+                    { label: "5:00", y: a[2] },
+                    { label: "7:00", y: a[3] },
+                    { label: "9:00", y: a[4] },
+                    { label: "11:00", y: a[5] },
+                    { label: "13:00", y: a[6] },
+                    { label: "15:00", y: a[7] },
+                    { label: "17:00", y: a[8] },
+                    { label: "19:00", y: a[9] },
+                    { label: "21:00", y: a[10] },
+                    { label: "23:00", y: a[11] },
+                ]
+            }]
+        });
+        $('#myModal').on('shown.bs.modal', function () {
+            chart.render();
+        });
+    }
+
+    function drawChartNoise(a) {
+        var chart = new CanvasJS.Chart("chart2", {
+            animationEnabled: true,
+            exportEnabled: true,
+            title: {
+                text: "Biểu đồ biểu diễn độ ồn",
+                fontFamily: "arial",
+                fontSize: 18,
+            },
+            axisY: {
+                title: "Chỉ số đo (DB)",
+                suffix: "DB",
+                titleFontSize: 14
+            },
+            axisX: {
+                title: "Thời gian",
+                suffix: "h",
+                interval: 1,
+                titleFontSize: 14
+            },
+            data: [{
+                type: "splineArea",
+                color: "#FFBD33",
+                showInLegend: true,
+                name: "Tiếng ồn",
+                yValueFormatString: "#,##0.##PPM",
+                dataPoints: [
+                    { label: "1:00", y: a[0] },
+                    { label: "3:00", y: a[1] },
+                    { label: "5:00", y: a[2] },
+                    { label: "7:00", y: a[3] },
+                    { label: "9:00", y: a[4] },
+                    { label: "11:00", y: a[5] },
+                    { label: "13:00", y: a[6] },
+                    { label: "15:00", y: a[7] },
+                    { label: "17:00", y: a[8] },
+                    { label: "19:00", y: a[9] },
+                    { label: "21:00", y: a[10] },
+                    { label: "23:00", y: a[11] },
+                ]
+            }]
+        });
+        $('#myModal').on('shown.bs.modal', function () {
+            chart.render();
+        });
+    }
+
+    function drawChartWater(a) {
+        var chart = new CanvasJS.Chart("chart3", {
+            animationEnabled: true,
+            exportEnabled: true,
+            title: {
+                text: "Biểu đồ biểu diễn chất lượng nước",
+                fontFamily: "arial",
+                fontSize: 18,
+            },
+            axisY: {
+                title: "Chỉ số đo (pH)",
+                suffix: "pH",
+                titleFontSize: 14
+            },
+            axisX: {
+                title: "Thời gian",
+                suffix: "h",
+                interval: 1,
+                titleFontSize: 14
+            },
+            data: [{
+                type: "splineArea",
+                color: "rgba(54,158,173,.7)",
+                showInLegend: true,
+                name: "Chất lượng nước",
+                yValueFormatString: "#,##0.##PPM",
+                dataPoints: [
+                    { label: "1:00", y: a[0] },
+                    { label: "3:00", y: a[1] },
+                    { label: "5:00", y: a[2] },
+                    { label: "7:00", y: a[3] },
+                    { label: "9:00", y: a[4] },
+                    { label: "11:00", y: a[5] },
+                    { label: "13:00", y: a[6] },
+                    { label: "15:00", y: a[7] },
+                    { label: "17:00", y: a[8] },
+                    { label: "19:00", y: a[9] },
+                    { label: "21:00", y: a[10] },
+                    { label: "23:00", y: a[11] },
+                ]
+            }]
+        });
+        $('#myModal').on('shown.bs.modal', function () {
+            chart.render();
+        });
+    }
+    
+    function abc(...a) {
+        // console.log(a);
+        var len = a.length / 3;
+        a1 = a.slice(0, len);
+        a2 = a.slice(len, len * 2);
+        a3 = a.slice(len * 2, len * 3);
+        curId = a[a.length-1];
+        // console.log(a1, a2, a3);
+        drawChartDirt(a1);
+        drawChartNoise(a2);
+        drawChartWater(a3);
+        document.getElementById('id').value = curId;
+        document.getElementById('date').value = new Date().toISOString().substring(0, 10);
+    }
+
+
+</script>
+</body>
+
+</html>

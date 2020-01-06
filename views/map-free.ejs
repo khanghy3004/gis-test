@@ -1,0 +1,52 @@
+<% include partials/header.ejs %>
+<div id="map" style="height: 100%; margin-top: 50px;"></div>
+<script>
+    // Display current map
+    var map = L.map( 'map', {
+        center: [10.036132, 105.779458],
+        zoom: 13,
+        minZoom: 2,
+
+    });
+
+    L.tileLayer( 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    subdomains: ['a','b','c']
+    }).addTo( map );
+
+    // Load data realtime
+    realtime = L.realtime({
+        url: 'http://localhost/gis-test/public/test-data.php',
+        crossOrigin: true,
+        type: 'json'
+    }, { interval: 500, }).addTo(map);
+
+    var markerClusters = L.markerClusterGroup();
+
+    realtime.on('update', function (e) {
+        updateFeatureIcon = function (fId) {
+            var feature = e.features[fId],
+            sum = feature.properties.sum;
+            status = feature.properties.status;
+            dirt = feature.properties.dirt;
+            noise = feature.properties.noise;
+            water = feature.properties.water;
+            time = feature.properties.time;
+            colorDirt = checkDirt(dirt);
+            colorNoise = checkNoise(noise);
+            colorWater = checkWater(water);
+            // console.log(arr);
+            var m = realtime.getLayer(fId).setIcon(new L.AwesomeNumberMarkers({ number: sum, markerColor: status.toLowerCase() })).bindPopup(
+                time+"<table> <tr style='background-color:"+status+"'> <th>Loại</th> <th>Chỉ số</th> </tr> <tr style='background-color:"+colorDirt+"'> <td>CO2</td> <td>" + dirt + " PPM</td> </tr> <tr style='background-color:"+colorNoise+"'> <td>Độ ồn</td> <td>" + noise + " DB</td> </tr> <tr style='background-color:"+colorWater+"'> <td>Nước</td> <td>" + water + " pH</td> </tr> </table>");
+            markerClusters.addLayer( m );
+        };
+        Object.keys(e.update).forEach(updateFeatureIcon);
+        map.addLayer( markerClusters );
+    });
+        /////////////////////////////////
+
+
+</script>
+</body>
+
+</html>
