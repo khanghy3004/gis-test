@@ -6,7 +6,7 @@ Gis-test is a website using Geographic Information System.
 
 
 ```bash
-npm install foobar
+npm install
 ```
 
 ## Usage
